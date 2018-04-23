@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Red Packet Seckilling</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script type="text/javascript"
+            src="https://cdnjs.cloudflare.com/ajax/libs/vertx/3.4.2/vertx-eventbus.min.js"></script>
+</head>
+<body>
+<div>
+    <h3 id="red_packet_msg">抢红包</h3>
+</div>
+<script type="text/javascript">
+    var getUUID = function () {
+        var d = new Date().getTime();
+        var uuid = 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = (d + Math.random() * 16) % 16 | 0;
+            d = Math.floor(d / 16);
+            return (c == 'x' ? r : (r & 0x7 | 0x8)).toString(16);
+        });
+        return uuid;
+    };
+    var clientId = getUUID();
+    var eventBus = new EventBus('http://10.8.10.65:8080/eventbus?clientId=' + clientId);
+
+    eventBus.onopen = function () {
+        console.log('connected');
+        eventBus.registerHandler('channel.' + clientId, function (err, res) {
+            console.log('received: ' + JSON.stringify(res));
+            document.getElementById('red_packet_msg').innerHTML = res.body;
+        });
+        eventBus.registerHandler('channel.redPacketSeckillingClient', function (err, res) {
+            document.getElementById('red_packet_msg').innerHTML = '你收到了一个红包';
+            // Starting grabbing red packet
+            // address, message, headers, callback
+            eventBus.send(
+                'channel.redPacketSeckillingServer',
+                {id: res.body.id, clientId: clientId},
+                null,
+                null);
+        });
+    };
+    eventBus.onclose = function () {
+        console.log("disconnected");
+        eventBus = null;
+    };
+</script>
+</body>
+</html>
